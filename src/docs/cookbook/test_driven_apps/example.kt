@@ -3,6 +3,7 @@ package cookbook.test_driven_apps
 import com.natpryce.hamkrest.and
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.client.OkHttp
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method.GET
@@ -27,13 +28,13 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-class AnswerRecorder(private val httpClient: HttpHandler) : (Int) -> Unit {
-    override fun invoke(answer: Int) {
+class AnswerRecorder(private val httpClient: HttpHandler) {
+    suspend fun invoke(answer: Int) {
         httpClient(Request(POST, "/" + answer.toString()))
     }
 }
 
-fun myMathsEndpoint(fn: (Int, Int) -> Int, recorder: (Int) -> Unit) = HttpHandler { req ->
+fun myMathsEndpoint(fn: (Int, Int) -> Int, recorder: suspend (Int) -> Unit) = HttpHandler { req ->
     val answer = fn(req.query("first")!!.toInt(), req.query("second")!!.toInt())
     recorder(answer)
     Response(OK).body("the answer is $answer")
@@ -41,7 +42,7 @@ fun myMathsEndpoint(fn: (Int, Int) -> Int, recorder: (Int) -> Unit) = HttpHandle
 
 class EndpointUnitTest {
     @Test
-    fun `adds numbers and records answer`() {
+    fun `adds numbers and records answer`() = runBlocking {
         var answer: Int? = null
         val unit = myMathsEndpoint({ first, second -> first + second }, { answer = it })
         val response = unit(Request(GET, "/").query("first", "123").query("second", "456"))
@@ -52,7 +53,7 @@ class EndpointUnitTest {
 
 fun MyMathsApp(recorderHttp: HttpHandler) =
     ServerFilters.CatchAll().then(routes(
-        "/add" bind GET to myMathsEndpoint({ first, second -> first + second }, AnswerRecorder(recorderHttp))
+        "/add" bind GET to myMathsEndpoint({ first, second -> first + second }, AnswerRecorder(recorderHttp)::invoke)
     ))
 
 class FakeRecorderHttp : HttpHandler {
@@ -62,7 +63,7 @@ class FakeRecorderHttp : HttpHandler {
         "/{answer}" bind POST to { request -> calls.add(request.path("answer")!!.toInt()); Response(OK) }
     )
 
-    override fun invoke(request: Request): Response = app(request)
+    override suspend fun invoke(request: Request): Response = app(request)
 }
 
 class FunctionalTest {
@@ -71,14 +72,14 @@ class FunctionalTest {
     private val app = MyMathsApp(recorderHttp)
 
     @Test
-    fun `adds numbers`() {
+    fun `adds numbers`() = runBlocking {
         val response = app(Request(GET, "/add").query("first", "123").query("second", "456"))
         assertThat(response, hasStatus(OK).and(hasBody("the answer is 579")))
         assertThat(recorderHttp.calls, equalTo(listOf(579)))
     }
 
     @Test
-    fun `not found`() {
+    fun `not found`() = runBlocking {
         val response = app(Request(GET, "/nothing").query("first", "123").query("second", "456"))
         assertThat(response, hasStatus(NOT_FOUND))
     }
@@ -108,7 +109,7 @@ class EndToEndTest {
     }
 
     @Test
-    fun `adds numbers`() {
+    fun `adds numbers`() = runBlocking {
         val response = client(Request(GET, "http://localhost:8000/add").query("first", "123").query("second", "456"))
         println(response)
         assertThat(response, hasStatus(OK).and(hasBody("the answer is 579")))

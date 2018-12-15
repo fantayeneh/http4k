@@ -3,6 +3,7 @@ package guide.example._2_adding_the_first_endpoint
 import com.natpryce.hamkrest.and
 import com.natpryce.hamkrest.assertion.assertThat
 import guide.example._2_adding_the_first_endpoint.Matchers.answerShouldBe
+import kotlinx.coroutines.runBlocking
 import org.http4k.client.OkHttp
 import org.http4k.core.Method.GET
 import org.http4k.core.Request
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 object Matchers {
+
     fun Response.answerShouldBe(expected: Int) {
         assertThat(this, hasStatus(OK).and(hasBody(expected.toString())))
     }
@@ -26,17 +28,17 @@ class EndToEndTest {
     private val server = MyMathServer(0)
 
     @BeforeEach
-    fun setup() {
+    fun setup(): Unit {
         server.start()
     }
 
     @AfterEach
-    fun teardown() {
+    fun teardown(): Unit {
         server.stop()
     }
 
     @Test
-    fun `all endpoints are mounted correctly`() {
+    fun `all endpoints are mounted correctly`() = runBlocking {
         assertThat(client(Request(GET, "http://localhost:${server.port()}/ping")), hasStatus(OK))
         client(Request(GET, "http://localhost:${server.port()}/add?value=1&value=2")).answerShouldBe(3)
     }
@@ -46,17 +48,18 @@ class AddFunctionalTest {
     private val client = MyMathsApp()
 
     @Test
-    fun `adds values together`() {
+    fun `adds values together`() = runBlocking {
         client(Request(GET, "/add?value=1&value=2")).answerShouldBe(3)
     }
 
     @Test
-    fun `answer is zero when no values`() {
+    fun `answer is zero when no values`() = runBlocking {
         client(Request(GET, "/add")).answerShouldBe(0)
     }
 
     @Test
-    fun `bad request when some values are not numbers`() {
+    fun `bad request when some values are not numbers`() = runBlocking {
         assertThat(client(Request(GET, "/add?value=1&value=notANumber")), hasStatus(BAD_REQUEST))
+        Unit
     }
 }

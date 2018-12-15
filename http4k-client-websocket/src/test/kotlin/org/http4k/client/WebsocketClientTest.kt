@@ -2,6 +2,7 @@ package org.http4k.client
 
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.Uri
 import org.http4k.routing.bind
 import org.http4k.routing.path
@@ -44,14 +45,14 @@ class WebsocketClientTest {
     }
 
     @Test
-    fun `blocking`() {
+    fun blocking() {
         val client = WebsocketClient.blocking(Uri.of("ws://localhost:$port/bob"))
         client.send(WsMessage("hello"))
         assertThat(client.received().take(3).toList(), equalTo(listOf(WsMessage("bob"), WsMessage("hello"))))
     }
 
     @Test
-    fun `non-blocking`() {
+    fun `non-blocking`() = runBlocking {
         val queue = LinkedBlockingQueue<() -> WsMessage?>()
         val received = generateSequence { queue.take()() }
         var connected = false

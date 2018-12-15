@@ -1,5 +1,6 @@
 package org.http4k.aws
 
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.Body
 import org.http4k.core.BodyMode
 import org.http4k.core.Filter
@@ -19,7 +20,7 @@ object MultipartS3Upload {
 
                 val partEtags = it.parts(size)
                     .withIndex()
-                    .mapNotNull { (index, part) -> next(it.uploadPart(index, uploadId, requestBodyMode(part))).orFail(uploadId).header("ETag") }
+                    .mapNotNull { (index, part) -> runBlocking { next(it.uploadPart(index, uploadId, requestBodyMode(part))).orFail(uploadId).header("ETag") } }
 
                 next(it.completeMultipart(uploadId, partEtags))
             } catch (e: UploadError) {

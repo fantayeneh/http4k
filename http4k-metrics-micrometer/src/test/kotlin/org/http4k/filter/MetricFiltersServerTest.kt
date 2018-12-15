@@ -4,6 +4,7 @@ import com.natpryce.hamkrest.and
 import com.natpryce.hamkrest.assertion.assertThat
 import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.Method
 import org.http4k.core.Method.DELETE
 import org.http4k.core.Method.GET
@@ -47,7 +48,7 @@ class MetricFiltersServerTest {
     }
 
     @Test
-    fun `routes with timer generate request timing metrics tagged with path and method and status`() {
+    fun `routes with timer generate request timing metrics tagged with path and method and status`() = runBlocking {
         assertThat(server(Request(GET, "/timed/one")), hasStatus(OK))
         repeat(2) {
             assertThat(server(Request(POST, "/timed/two/bob")), (hasStatus(OK) and hasBody("bob")))
@@ -62,7 +63,7 @@ class MetricFiltersServerTest {
     }
 
     @Test
-    fun `routes with counter generate request count metrics tagged with path and method and status`() {
+    fun `routes with counter generate request count metrics tagged with path and method and status`() = runBlocking {
         assertThat(server(Request(GET, "/counted/one")), hasStatus(OK))
         repeat(2) {
             assertThat(server(Request(POST, "/counted/two/bob")), (hasStatus(OK) and hasBody("bob")))
@@ -75,7 +76,7 @@ class MetricFiltersServerTest {
     }
 
     @Test
-    fun `routes without metrics generate nothing`() {
+    fun `routes without metrics generate nothing`() = runBlocking {
         assertThat(server(Request(GET, "/unmetered/one")), hasStatus(OK))
         assertThat(server(Request(DELETE, "/unmetered/two")), hasStatus(INTERNAL_SERVER_ERROR))
 
@@ -88,7 +89,7 @@ class MetricFiltersServerTest {
     }
 
     @Test
-    fun `request timer meter names and request id formatter can be configured`() {
+    fun `request timer meter names and request id formatter can be configured`() = runBlocking {
         requestTimer = MetricFilters.Server.RequestTimer(registry, "custom.requests", "custom.description",
             { it.label("foo", "bar") }, clock)
 
@@ -100,7 +101,7 @@ class MetricFiltersServerTest {
     }
 
     @Test
-    fun `request counter meter names and request id formatter can be configured`() {
+    fun `request counter meter names and request id formatter can be configured`() = runBlocking {
         requestCounter = MetricFilters.Server.RequestCounter(registry, "custom.requests", "custom.description",
             { it.label("foo", "bar") })
 
@@ -112,14 +113,14 @@ class MetricFiltersServerTest {
     }
 
     @Test
-    fun `timed routes without uri template generate request timing metrics tagged with unmapped path value`() {
+    fun `timed routes without uri template generate request timing metrics tagged with unmapped path value`() = runBlocking {
         assertThat(server(Request(GET, "/otherTimed/test.json")), hasStatus(OK))
 
         assert(registry, hasRequestTimer(1, 1, tags = *arrayOf("path" to "UNMAPPED", "method" to "GET", "status" to "200")))
     }
 
     @Test
-    fun `counted routes without uri template generate request count metrics tagged with unmapped path value`() {
+    fun `counted routes without uri template generate request count metrics tagged with unmapped path value`() = runBlocking {
         assertThat(server(Request(GET, "/otherCounted/test.json")), hasStatus(OK))
         assert(registry, hasRequestCounter(1, tags = *arrayOf("path" to "UNMAPPED", "method" to "GET", "status" to "200")))
     }

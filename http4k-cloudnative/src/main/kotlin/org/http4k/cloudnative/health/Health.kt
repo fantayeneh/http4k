@@ -33,7 +33,7 @@ object Health {
  * The Liveness check is used to determine if an app is alive.
  */
 object Liveness : HttpHandler {
-    override fun invoke(request: Request) = Response(OK)
+    override suspend fun invoke(request: Request) = Response(OK)
 }
 
 /**

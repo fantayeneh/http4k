@@ -2,6 +2,9 @@ package org.http4k.server
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method
 import org.http4k.core.Request
@@ -11,19 +14,25 @@ import org.http4k.core.safeLong
 import java.net.InetSocketAddress
 
 
-data class SunHttp(val port: Int = 8000) : ServerConfig {
+data class SunHttp(val port: Int = 8000, private val scope: CoroutineScope) : ServerConfig {
+    constructor(port: Int = 8000) : this(port, GlobalScope)
+
     override fun toServer(httpHandler: HttpHandler): Http4kServer = object : Http4kServer {
         override fun port(): Int = if (port > 0) port else server.address.port
 
         private val server = HttpServer.create(InetSocketAddress(port), 0)
         override fun start(): Http4kServer = apply {
             server.createContext("/") {
-                try {
-                    it.populate(httpHandler(it.toRequest()))
-                } catch (e: Exception) {
-                    it.sendResponseHeaders(500, 0)
+                scope.launch {
+                    try {
+                        it.populate(httpHandler(it.toRequest()))
+                    } catch (e: Exception) {
+                        it.toRequest()
+                        e.printStackTrace()
+                        it.sendResponseHeaders(500, 0)
+                    }
+                    it.close()
                 }
-                it.close()
             }
             server.start()
         }

@@ -2,6 +2,7 @@ package org.http4k.testing
 
 import com.natpryce.hamkrest.and
 import com.natpryce.hamkrest.assertion.assertThat
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method.GET
 import org.http4k.core.Request
@@ -17,17 +18,17 @@ class ExampleApprovalTest {
     private val app = HttpHandler { Response(OK).body("hello world") }
 
     @Test
-    fun `check response content`(approver: Approver) {
+    fun `check response content`(approver: Approver) = runBlocking {
         approver.assertApproved(app(Request(GET, "/url")))
     }
 
     @Test
-    fun `check request content`(approver: Approver) {
+    fun `check request content`(approver: Approver) = runBlocking {
         approver.assertApproved(Request(GET, "/url").body("foobar"))
     }
 
     @Test
-    fun `create hamkrest matcher`(approver: Approver) {
+    fun `create hamkrest matcher`(approver: Approver) = runBlocking {
         assertThat(app(Request(GET, "/url")), hasStatus(OK).and(approver.hasApprovedContent()))
     }
 }

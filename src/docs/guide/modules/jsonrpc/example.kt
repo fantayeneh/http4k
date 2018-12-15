@@ -37,7 +37,7 @@ object CounterErrorHandler : ErrorHandler {
     }
 }
 
-fun main() {
+suspend fun main() {
     val counter = Counter()
 
     val rpcHandler: HttpHandler = JsonRpc.auto(Jackson, CounterErrorHandler) {
@@ -45,7 +45,7 @@ fun main() {
         method("current", handler(counter::currentValue))
     }
 
-    fun runRequest(s: String) {
+    suspend fun runRequest(s: String) {
         println(
             rpcHandler(
                 Request(Method.POST, "/rpc")

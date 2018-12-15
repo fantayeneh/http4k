@@ -5,6 +5,7 @@ import io.undertow.UndertowOptions.ENABLE_HTTP2
 import io.undertow.server.HttpServerExchange
 import io.undertow.server.handlers.BlockingHandler
 import io.undertow.util.HttpString
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method
 import org.http4k.core.Request
@@ -36,10 +37,12 @@ class HttpUndertowHandler(handler: HttpHandler) : io.undertow.server.HttpHandler
                 .flatMap { header -> header.map { header.headerName.toString() to it } })
             .body(inputStream, requestHeaders.getFirst("Content-Length").safeLong())
 
-    override fun handleRequest(exchange: HttpServerExchange) = safeHandler(exchange.asRequest()).into(exchange)
+    override fun handleRequest(exchange: HttpServerExchange) {
+        runBlocking { safeHandler(exchange.asRequest()).into(exchange) }
+    }
 }
 
-data class Undertow(val port: Int = 8000, val enableHttp2: Boolean) : ServerConfig {
+data class Undertow(val port: Int = 8000, private val enableHttp2: Boolean) : ServerConfig {
     constructor(port: Int = 8000) : this(port, false)
 
     override fun toServer(httpHandler: HttpHandler): Http4kServer =

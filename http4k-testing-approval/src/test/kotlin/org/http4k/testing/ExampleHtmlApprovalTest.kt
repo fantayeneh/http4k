@@ -2,6 +2,7 @@ package org.http4k.testing
 
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.throws
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.ContentType.Companion.TEXT_HTML
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method.GET
@@ -24,17 +25,17 @@ class ExampleHtmlApprovalTest {
     }
 
     @Test
-    fun `check response content`(approver: Approver) {
+    fun `check response content`(approver: Approver) = runBlocking {
         approver.assertApproved(app(Request(GET, "/url")))
     }
 
     @Test
-    fun `check response content with mismatching content type`(approver: Approver) {
+    fun `check response content with mismatching content type`(approver: Approver) = runBlocking {
         assertThat({ approver.assertApproved(Response(OK)) }, throws<AssertionError>())
     }
 
     @Test
-    fun `check response content with badly-formatted HTML`(approver: Approver) {
+    fun `check response content with badly-formatted HTML`(approver: Approver) = runBlocking {
         assertThat({
             approver.assertApproved(Response(OK).with(CONTENT_TYPE of TEXT_HTML).body("""<this is not really HTML"""))
         }, throws<AssertionError>())

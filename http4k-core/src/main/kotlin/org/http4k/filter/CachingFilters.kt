@@ -100,7 +100,7 @@ object CachingFilters {
          * By default, only applies when the status code of the response is < 400. This is overridable.
          */
         object AddETag {
-            operator fun invoke(predicate: (org.http4k.core.Response) -> Boolean = { it.status.code < 400 }): Filter = Filter { next ->
+            operator fun invoke(predicate: (org.http4k.core.Response) -> Boolean = { it.status.code < 400 }) = Filter { next ->
                 {
                     val response = next(it)
                     if (predicate(response)) {

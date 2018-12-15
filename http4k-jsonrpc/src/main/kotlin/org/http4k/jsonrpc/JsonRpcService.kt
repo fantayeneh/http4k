@@ -44,7 +44,7 @@ data class JsonRpcService<NODE : Any>(
             }
         }
 
-    override fun invoke(request: Request): Response = handler(request)
+    override suspend fun invoke(request: Request): Response = handler(request)
 
     private fun process(requestJson: NODE): NODE? = when (json.typeOf(requestJson)) {
         Object -> processSingleRequest(json.fields(requestJson).toMap())

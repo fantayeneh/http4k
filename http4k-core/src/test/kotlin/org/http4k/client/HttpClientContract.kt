@@ -4,6 +4,7 @@ import com.natpryce.hamkrest.anything
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.containsSubstring
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.Body
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method
@@ -32,14 +33,14 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
                                   private val timeoutClient: HttpHandler) : AbstractHttpClientContract(serverConfig) {
 
     @Test
-    open fun `can forward response body to another request`() {
+    open fun `can forward response body to another request`() = runBlocking {
         val response = client(Request(GET, "http://localhost:$port/stream"))
         val echoResponse = client(Request(POST, "http://localhost:$port/echo").body(response.body))
         assertThat(echoResponse.bodyString(), equalTo("stream"))
     }
 
     @Test
-    fun `supports gzipped content`() {
+    fun `supports gzipped content`() = runBlocking {
         val asServer = ServerFilters.GZip().then { Response(Status.OK).body("hello") }.asServer(SunHttp(0))
         asServer.start()
         val client = JavaHttpClient()
@@ -52,7 +53,7 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
     }
 
     @Test
-    fun `can make call`() {
+    fun `can make call`() = runBlocking {
         val response = client(Request(POST, "http://localhost:$port/someUri")
             .query("query", "123")
             .header("header", "value").body("body"))
@@ -65,7 +66,7 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
     }
 
     @Test
-    fun `performs simple GET request`() {
+    fun `performs simple GET request`() = runBlocking {
         val response = client(Request(GET, "http://localhost:$port/echo").query("name", "John Doe"))
 
         assertThat(response.status, equalTo(OK))
@@ -73,7 +74,7 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
     }
 
     @Test
-    fun `performs simple POST request`() {
+    fun `performs simple POST request`() = runBlocking {
         val response = client(Request(POST, "http://localhost:$port/echo").body("foobar"))
 
         assertThat(response.status, equalTo(OK))
@@ -81,7 +82,7 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
     }
 
     @Test
-    open fun `performs simple POST request - stream`() {
+    open fun `performs simple POST request - stream`() = runBlocking {
         val response = client(Request(POST, "http://localhost:$port/echo").body("foobar".byteInputStream(), 6))
 
         assertThat(response.status, equalTo(OK))
@@ -89,7 +90,7 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
     }
 
     @Test
-    fun `performs simple DELETE request`() {
+    fun `performs simple DELETE request`() = runBlocking {
 
         val response = client(Request(DELETE, "http://localhost:$port/echo"))
 
@@ -98,7 +99,7 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
     }
 
     @Test
-    fun `does not follow redirects`() {
+    fun `does not follow redirects`() = runBlocking {
         val response = client(Request(GET, "http://localhost:$port/redirect"))
 
         assertThat(response.status, equalTo(Status.FOUND))
@@ -106,7 +107,7 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
     }
 
     @Test
-    fun `does not store cookies`() {
+    fun `does not store cookies`() = runBlocking {
         client(Request(GET, "http://localhost:$port/cookies/set").query("name", "foo").query("value", "bar"))
 
         val response = client(Request(GET, "http://localhost:$port/cookies"))
@@ -116,7 +117,7 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
     }
 
     @Test
-    fun `filters enable cookies and redirects`() {
+    fun `filters enable cookies and redirects`() = runBlocking {
         val enhancedClient = ClientFilters.FollowRedirects().then(ClientFilters.Cookies()).then(client)
 
         val response = enhancedClient(Request(GET, "http://localhost:$port/cookies/set").query("name", "foo").query("value", "bar"))
@@ -126,14 +127,14 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
     }
 
     @Test
-    fun `empty body`() {
+    fun `empty body`() = runBlocking {
         val response = client(Request(GET, "http://localhost:$port/empty"))
         assertThat(response.status.successful, equalTo(true))
         assertThat(response.bodyString(), equalTo(""))
     }
 
     @Test
-    fun `redirection response`() {
+    fun `redirection response`() = runBlocking {
         val response = ClientFilters.FollowRedirects()
             .then(client)(Request(GET, "http://localhost:$port/relative-redirect/5"))
         assertThat(response.status, equalTo(OK))
@@ -141,35 +142,35 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
     }
 
     @Test
-    fun `send binary data`() {
+    fun `send binary data`() = runBlocking {
         val response = client(Request(POST, "http://localhost:$port/check-image").body(Body(ByteBuffer.wrap(testImageBytes()))))
         assertThat(response.status, equalTo(OK))
     }
 
     @Test
     @Disabled
-    open fun `socket timeouts are converted into 504`() {
+    open fun `socket timeouts are converted into 504`() = runBlocking {
         val response = timeoutClient(Request(GET, "http://localhost:$port/delay/150"))
 
         assertThat(response.status, equalTo(Status.CLIENT_TIMEOUT))
     }
 
     @Test
-    open fun `connection refused are converted into 503`() {
+    open fun `connection refused are converted into 503`() = runBlocking {
         val response = client(Request(GET, "http://localhost:1"))
 
         assertThat(response.status, equalTo(Status.CONNECTION_REFUSED))
     }
 
     @Test
-    open fun `unknown host are converted into 503`() {
+    open fun `unknown host are converted into 503`() = runBlocking {
         val response = client(Request(GET, "http://foobar.bill"))
 
         assertThat(response.status, equalTo(Status.UNKNOWN_HOST))
     }
 
     @Test
-    fun `can retrieve body for different statuses`() {
+    fun `can retrieve body for different statuses`() = runBlocking {
         listOf(200, 301, 404, 500).forEach { statusCode ->
             val response = client(Request(GET, "http://localhost:$port/status/$statusCode"))
             assertThat(response.status, equalTo(Status(statusCode, "")))
@@ -178,7 +179,7 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
     }
 
     @Test
-    fun `handles empty response body for different statuses`() {
+    fun `handles empty response body for different statuses`() = runBlocking {
         listOf(200, 301, 400, 404, 500).forEach { statusCode ->
             val response = client(Request(GET, "http://localhost:$port/status-no-body/$statusCode"))
             assertThat(response.status, equalTo(Status(statusCode, "")))
@@ -187,8 +188,8 @@ abstract class HttpClientContract(serverConfig: (Int) -> ServerConfig,
     }
 
     @Test
-    fun `requests have expected headers`() {
-        fun checkNoBannedHeaders(m: Method, vararg banned: String) {
+    open fun `requests have expected headers`() = runBlocking {
+        suspend fun checkNoBannedHeaders(m: Method, vararg banned: String) {
             val response = client(Request(m, "http://localhost:$port/headers"))
             val bannedHeaders = banned.intersect(response.bodyString().split(","))
             println("$m contained headers ${response.bodyString().split(",")}")

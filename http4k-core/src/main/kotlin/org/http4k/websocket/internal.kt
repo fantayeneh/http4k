@@ -5,23 +5,23 @@ import org.http4k.websocket.WsStatus.Companion.NORMAL
 
 abstract class PushPullAdaptingWebSocket(override val upgradeRequest: Request) : Websocket {
 
-    private val errorHandlers: MutableList<(Throwable) -> Unit> = mutableListOf()
-    private val closeHandlers: MutableList<(WsStatus) -> Unit> = mutableListOf()
-    private val messageHandlers: MutableList<(WsMessage) -> Unit> = mutableListOf()
+    private val errorHandlers = mutableListOf<suspend (Throwable) -> Unit>()
+    private val closeHandlers = mutableListOf<suspend (WsStatus) -> Unit>()
+    private val messageHandlers = mutableListOf<suspend (WsMessage) -> Unit>()
 
-    fun triggerError(throwable: Throwable) = errorHandlers.forEach { it(throwable) }
-    fun triggerClose(status: WsStatus = NORMAL) = closeHandlers.forEach { it(status) }
-    fun triggerMessage(message: WsMessage) = messageHandlers.forEach { it(message) }
+    suspend fun triggerError(throwable: Throwable) = errorHandlers.forEach { it(throwable) }
+    suspend fun triggerClose(status: WsStatus = NORMAL) = closeHandlers.forEach { it(status) }
+    suspend fun triggerMessage(message: WsMessage) = messageHandlers.forEach { it(message) }
 
-    override fun onError(fn: (Throwable) -> Unit) {
+    override suspend fun onError(fn: suspend (Throwable) -> Unit) {
         errorHandlers.add(fn)
     }
 
-    override fun onClose(fn: (WsStatus) -> Unit) {
+    override suspend fun onClose(fn: suspend (WsStatus) -> Unit) {
         closeHandlers.add(fn)
     }
 
-    override fun onMessage(fn: (WsMessage) -> Unit) {
+    override suspend fun onMessage(fn: suspend (WsMessage) -> Unit) {
         messageHandlers.add(fn)
     }
 }

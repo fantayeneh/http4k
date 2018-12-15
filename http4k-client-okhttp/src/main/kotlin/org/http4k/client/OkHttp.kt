@@ -1,5 +1,9 @@
 package org.http4k.client
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -17,13 +21,23 @@ import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 object OkHttp {
     operator fun invoke(client: OkHttpClient = defaultOkHttpClient(), bodyMode: BodyMode = BodyMode.Memory): DualSyncAsyncHttpHandler =
         object : DualSyncAsyncHttpHandler {
-            override fun invoke(request: Request): Response =
+            override suspend fun invoke(request: Request): Response =
                 try {
-                    client.newCall(request.asOkHttp()).execute().asHttp4k(bodyMode)
+                    val callContext = CompletableDeferred<Unit>()
+                    client.executeWithCoroutine(request.asOkHttp()).let {
+                        it.body.apply {
+                            callContext[Job]?.invokeOnCompletion { this?.close() }
+                        }
+                        withContext(callContext) {
+                            it.asHttp4k(bodyMode)
+                        }
+                    }
                 } catch (e: ConnectException) {
                     Response(CONNECTION_REFUSED.toClientStatus(e))
                 } catch (e: UnknownHostException) {
@@ -34,6 +48,22 @@ object OkHttp {
 
             override operator fun invoke(request: Request, fn: (Response) -> Unit) =
                 client.newCall(request.asOkHttp()).enqueue(Http4kCallback(bodyMode, fn))
+        }
+
+    private suspend fun OkHttpClient.executeWithCoroutine(request: okhttp3.Request): okhttp3.Response =
+        suspendCancellableCoroutine {
+            val call = newCall(request)
+            val callback = object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    if (!call.isCanceled()) it.resumeWithException(e)
+                }
+
+                override fun onResponse(call: Call, response: okhttp3.Response) {
+                    if (!call.isCanceled()) it.resume(response)
+                }
+            }
+            call.enqueue(callback)
+            it.invokeOnCancellation { call.cancel() }
         }
 
     private class Http4kCallback(private val bodyMode: BodyMode, private val fn: (Response) -> Unit) : Callback {

@@ -1,5 +1,6 @@
 package org.http4k.client
 
+import org.http4k.core.HttpHandler
 import org.http4k.core.Method.DELETE
 import org.http4k.core.Method.GET
 import org.http4k.core.Method.POST
@@ -20,7 +21,7 @@ import org.http4k.server.ServerConfig
 import org.http4k.server.asServer
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import java.util.Arrays
+import java.util.*
 
 abstract class AbstractHttpClientContract(private val serverConfig: (Int) -> ServerConfig) {
 
@@ -31,7 +32,7 @@ abstract class AbstractHttpClientContract(private val serverConfig: (Int) -> Ser
 
     @BeforeEach
     fun before() {
-        val defaultHandler = { request: Request ->
+        val defaultHandler = HttpHandler { request: Request ->
             Response(OK)
                 .header("uri", request.uri.toString())
                 .header("header", request.header("header"))
@@ -58,11 +59,11 @@ abstract class AbstractHttpClientContract(private val serverConfig: (Int) -> Ser
                 Response(OK)
             },
             "/echo" bind routes(
-                DELETE to { _: Request -> Response(OK).body("delete") },
+                    DELETE to { _: Request -> Response(OK).body("delete") },
                 GET to { request: Request -> Response(OK).body(request.uri.toString()) },
                 POST to { request: Request -> Response(OK).body(request.bodyString()) }
             ),
-            "/headers" bind { request: Request -> Response(OK).body(request.headers.joinToString(",") { it.first }) },
+            "/headers" bind HttpHandler { request: Request -> Response(OK).body(request.headers.joinToString(",") { it.first }) },
             "/check-image" bind POST to { request: Request ->
                 if (Arrays.equals(testImageBytes(), request.body.payload.array()))
                     Response(OK) else Response(BAD_REQUEST.description("Image content does not match"))

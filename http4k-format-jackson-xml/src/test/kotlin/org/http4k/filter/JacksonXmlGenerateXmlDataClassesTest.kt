@@ -2,6 +2,7 @@ package org.http4k.filter
 
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.Method.GET
 import org.http4k.core.Request
 import org.http4k.core.Response
@@ -16,11 +17,11 @@ class JacksonXmlGenerateXmlDataClassesTest {
     private val input = """<?xml version="1.0" encoding="UTF-8" standalone="no"?><Xml>asd<SubWithText attr="attrValue">subText</SubWithText><SubWithText attr="attrValue3">subText4</SubWithText><subWithAttr attr="attr2"/></Xml>"""
 
     @Test
-    fun `makes expected data classes from xml response`() {
+    fun `makes expected data classes from xml response`() = runBlocking {
 
         val os = ByteArrayOutputStream()
 
-        val app = JacksonXmlGenerateXmlDataClasses(PrintStream(os), { 1 }).then { Response(Status.OK).body(input) }
+        val app = JacksonXmlGenerateXmlDataClasses(PrintStream(os)) { 1 }.then { Response(Status.OK).body(input) }
 
         app(Request(GET, "/bob"))
 

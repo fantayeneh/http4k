@@ -3,6 +3,7 @@ package org.http4k.routing
 import com.natpryce.hamkrest.absent
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.Method.GET
 import org.http4k.core.Request
 import org.http4k.websocket.Websocket
@@ -14,7 +15,7 @@ import java.util.concurrent.atomic.AtomicReference
 class WsRoutingTest {
 
     @Test
-    fun `simple find with path matching`() {
+    fun `simple find with path matching`() = runBlocking {
 
         val request = AtomicReference<Request>()
 
@@ -30,19 +31,19 @@ class WsRoutingTest {
         a!!(object : Websocket {
             override val upgradeRequest: Request = sentRequestWithNoUriTemplateHeader
 
-            override fun send(message: WsMessage) {
+            override suspend fun send(message: WsMessage) {
             }
 
-            override fun close(status: WsStatus) {
+            override suspend fun close(status: WsStatus) {
             }
 
-            override fun onError(fn: (Throwable) -> Unit) {
+            override suspend fun onError(fn: suspend (Throwable) -> Unit) {
             }
 
-            override fun onClose(fn: (WsStatus) -> Unit) {
+            override suspend fun onClose(fn: suspend (WsStatus) -> Unit) {
             }
 
-            override fun onMessage(fn: (WsMessage) -> Unit) {
+            override suspend fun onMessage(fn: suspend (WsMessage) -> Unit) {
             }
 
         })
@@ -50,7 +51,7 @@ class WsRoutingTest {
     }
 
     @Test
-    fun `not found`() {
+    fun `not found`() = runBlocking {
         val websockets = websockets()
 
         assertThat(websockets(Request(GET, "/path1/index.html")), absent())

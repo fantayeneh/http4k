@@ -3,7 +3,7 @@ package org.http4k.chaos
 import com.natpryce.hamkrest.and
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
-
+import kotlinx.coroutines.runBlocking
 import org.http4k.chaos.ChaosBehaviours.ReturnStatus
 import org.http4k.chaos.ChaosStages.Repeat
 import org.http4k.chaos.ChaosStages.Variable
@@ -51,9 +51,10 @@ class WaitTest : ChaosStageContract() {
     override val expectedDescription = "Wait"
 
     @Test
-    fun `Wait does not match the response`() {
+    fun `Wait does not match the response`() = runBlocking {
         val app = Wait.asFilter().then { response }
         assertThat(app(Request(GET, "")), equalTo(response))
+        Unit
     }
 }
 
@@ -67,7 +68,7 @@ class RepeatTest : ChaosStageContract() {
     override val expectedDescription = "Repeat [Wait]"
 
     @Test
-    fun `repeat starts again at the beginning`() {
+    fun `repeat starts again at the beginning`() = runBlocking {
         val app = Repeat {
             chaosStage(I_M_A_TEAPOT).until { it.method == POST }
                 .then(chaosStage(NOT_FOUND).until { it.method == OPTIONS })
@@ -82,34 +83,37 @@ class RepeatTest : ChaosStageContract() {
         assertThat(app(Request(GET, "")), equalTo(Response(GATEWAY_TIMEOUT)))
         assertThat(app(Request(TRACE, "")), equalTo(Response(I_M_A_TEAPOT)))
         assertThat(app(Request(DELETE, "")), equalTo(response))
+        Unit
     }
 }
 
 class VariableStageTest {
     @Test
-    fun `should provide ability to modify stage at runtime`() {
+    fun `should provide ability to modify stage at runtime`() = runBlocking {
         val variable = Variable()
         assertThat(variable.toString(), equalTo(("Always None")))
         assertThat(variable(request)!!.then { response }(request), equalTo(response))
         variable.current = ChaosStages.Repeat { ReturnStatus(NOT_FOUND).appliedWhen(Always()) }
         assertThat(variable.toString(), equalTo(("Repeat [Always ReturnStatus (404)]")))
         assertThat(variable(request)!!.then { response }(request), hasStatus(NOT_FOUND.description("x-http4k-chaos")).and(hasHeader("x-http4k-chaos", Regex("Status 404"))))
+        Unit
     }
 }
 
 class ChaosStageOperationsTest {
     @Test
-    fun `until stops when the trigger is hit`() {
+    fun `until stops when the trigger is hit`() = runBlocking {
         val app = chaosStage(NOT_FOUND).until { it.method == POST }
             .asFilter().then { response }
 
         assertThat(app(Request(GET, "")), equalTo(Response(NOT_FOUND)))
         assertThat(app(Request(POST, "")), equalTo(response))
         assertThat(app(Request(GET, "")), equalTo(response))
+        Unit
     }
 
     @Test
-    fun `then moves onto the next stage`() {
+    fun `then moves onto the next stage`() = runBlocking {
         val app = chaosStage(I_M_A_TEAPOT).until { it.method == POST }
             .then(chaosStage(NOT_FOUND).until { it.method == TRACE })
             .then(chaosStage(INTERNAL_SERVER_ERROR))
@@ -120,6 +124,7 @@ class ChaosStageOperationsTest {
         assertThat(app(Request(GET, "")), equalTo(Response(NOT_FOUND)))
         assertThat(app(Request(TRACE, "")), equalTo(Response(INTERNAL_SERVER_ERROR)))
         assertThat(app(Request(GET, "")), equalTo(Response(INTERNAL_SERVER_ERROR)))
+        Unit
     }
 }
 

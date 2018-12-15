@@ -2,6 +2,7 @@ package org.http4k.websocket
 
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.Method
 import org.http4k.core.Request
 import org.http4k.websocket.WsStatus.Companion.NEVER_CONNECTED
@@ -14,17 +15,17 @@ class PushPullAdaptingWebSocketTest {
         val received = mutableListOf<WsMessage>()
         val closed = AtomicReference<WsStatus>(null)
 
-        override fun send(message: WsMessage) {
+        override suspend fun send(message: WsMessage) {
             received += message
         }
 
-        override fun close(status: WsStatus) {
+        override suspend fun close(status: WsStatus) {
             closed.set(status)
         }
     }
 
     @Test
-    fun `inbound comms are pushed to client`() {
+    fun `inbound comms are pushed to client`() = runBlocking {
         val adapter = TestAdapter()
         adapter.send(WsMessage("hello"))
         assertThat(adapter.received, equalTo(listOf(WsMessage("hello"))))
@@ -33,7 +34,7 @@ class PushPullAdaptingWebSocketTest {
     }
 
     @Test
-    fun `outbound comms are pushed to socket`() {
+    fun `outbound comms are pushed to socket`() = runBlocking {
         val outboundClose = AtomicReference<WsStatus>(null)
         val outboundMessage = AtomicReference<WsMessage>(null)
         val outboundError = AtomicReference<Throwable>(null)

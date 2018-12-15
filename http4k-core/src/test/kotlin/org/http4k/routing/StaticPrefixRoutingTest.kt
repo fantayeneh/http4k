@@ -2,6 +2,7 @@ package org.http4k.routing
 
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.Method.GET
 import org.http4k.core.Request
 import org.http4k.core.Status
@@ -13,60 +14,60 @@ class StaticPrefixRoutingTest {
     private lateinit var app: RoutingHttpHandler
 
     @BeforeEach
-    fun before() {
+    fun before() = runBlocking {
         app = routes("/bar" bind static(Classpath("bar")))
     }
 
     @Test
-    fun `test static resource bar`() {
+    fun `test static resource bar`() = runBlocking {
         val result = app(Request(GET, "/bar/"))
         assertThat(result.status, equalTo(Status.OK))
         assertThat(result.bodyString(), equalTo("contents of bar/index.html"))
     }
 
     @Test
-    fun `test static resource bar - index html`() {
+    fun `test static resource bar - index html`() = runBlocking {
         val result = app(Request(GET, "/bar/index.html"))
         assertThat(result.status, equalTo(Status.OK))
         assertThat(result.bodyString(), equalTo("contents of bar/index.html"))
     }
 
     @Test
-    fun `test static resource bar - bar html`() {
+    fun `test static resource bar - bar html`() = runBlocking {
         val result = app(Request(GET, "/bar/bar.html"))
         assertThat(result.status, equalTo(Status.OK))
         assertThat(result.bodyString(), equalTo("contents of bar/bar.html"))
     }
 
     @Test
-    fun `test static resource bar - bar-xyz html`() {
+    fun `test static resource bar - bar-xyz html`() = runBlocking {
         val result = app(Request(GET, "/bar/bar-xyz.html"))
         assertThat(result.status, equalTo(Status.OK))
         assertThat(result.bodyString(), equalTo("contents of bar/bar-xyz.html"))
     }
 
     @Test
-    fun `test static resource bar - bar`() {
+    fun `test static resource bar - bar`() = runBlocking {
         val result = app(Request(GET, "/bar/bar/"))
         assertThat(result.status, equalTo(Status.NOT_FOUND)) // because index.html is read only for root
     }
 
     @Test
-    fun `test static resource bar - bar - index html`() {
+    fun `test static resource bar - bar - index html`() = runBlocking {
         val result = app(Request(GET, "/bar/bar/index.html"))
         assertThat(result.status, equalTo(Status.OK))
         assertThat(result.bodyString(), equalTo("contents of bar/bar/index.html"))
     }
 
     @Test
-    fun `test static resource bar - bar - bar html`() {
+    fun `test static resource bar - bar - bar html`() = runBlocking {
         val result = app(Request(GET, "/bar/bar/bar.html"))
         assertThat(result.status, equalTo(Status.OK))
         assertThat(result.bodyString(), equalTo("contents of bar/bar/bar.html"))
     }
 
     @Test
-    fun `test static resource bar - bar - bar-xyz html`() {
+    fun `test static resource bar - bar - bar-xyz html`() = runBlocking {
         val result = app(Request(GET, "/bar/bar/bar-xyz.html"))
         assertThat(result.status, equalTo(Status.OK))
         assertThat(result.bodyString(), equalTo("contents of bar/bar/bar-xyz.html"))

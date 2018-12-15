@@ -2,6 +2,7 @@ package org.http4k.security.oauth.server
 
 import com.natpryce.hamkrest.and
 import com.natpryce.hamkrest.assertion.assertThat
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.Method
 import org.http4k.core.Request
 import org.http4k.core.Status.Companion.SEE_OTHER
@@ -34,7 +35,7 @@ class AuthenticationCompleteTest {
     private fun isFailure(request: Request): Boolean = request.query("fail") == "true"
 
     @Test
-    fun `redirects on successful login`() {
+    fun `redirects on successful login`() = runBlocking {
         val response = underTest(Request(Method.POST, "/login").withAuthorization(authorizationRequest))
 
         assertThat(response, hasStatus(SEE_OTHER)
@@ -45,7 +46,7 @@ class AuthenticationCompleteTest {
     }
 
     @Test
-    fun `includes id_token if response_type requires it`() {
+    fun `includes id_token if response_type requires it`() = runBlocking {
         val response = underTest(Request(Method.POST, "/login").withAuthorization(authorizationRequest, CodeIdToken))
 
         assertThat(response, hasStatus(SEE_OTHER)
@@ -57,7 +58,7 @@ class AuthenticationCompleteTest {
     }
 
     @Test
-    fun `redirects with error details if login is not successful`() {
+    fun `redirects with error details if login is not successful`() = runBlocking {
         val response = underTest(Request(Method.POST, "/login").withAuthorization(authorizationRequest).query("fail", "true"))
 
         assertThat(response, hasStatus(SEE_OTHER)
@@ -69,10 +70,10 @@ class AuthenticationCompleteTest {
     }
 
     @Test
-    fun `redirects with error details including error_uri if provided`() {
+    fun `redirects with error details including error_uri if provided`() = runBlocking {
         val errorUri = "SomeUri"
         val underTest = AuthenticationComplete(
-            DummyAuthorizationCodes(authorizationRequest, this::isFailure, "jdoe"),
+            DummyAuthorizationCodes(authorizationRequest, ::isFailure, "jdoe"),
             DummyOAuthAuthRequestTracking(),
             DummyIdTokens("jdoe"),
             errorUri

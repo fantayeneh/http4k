@@ -2,6 +2,7 @@ package org.http4k.streaming
 
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method.GET
 import org.http4k.core.Method.POST
@@ -31,7 +32,7 @@ abstract class StreamingContract(private val config: StreamingTestConfiguration 
 
     private lateinit var server: Http4kServer
 
-    protected val baseUrl by lazy { "http://0.0.0.0:${server.port()}" }
+    private val baseUrl by lazy { "http://0.0.0.0:${server.port()}" }
 
     private val sharedList = CopyOnWriteArrayList<Char>()
 
@@ -59,7 +60,7 @@ abstract class StreamingContract(private val config: StreamingTestConfiguration 
     }
 
     @Test
-    fun `can stream response`() {
+    open fun `can stream response`() = runBlocking {
         captureReceivedStream("client") { createClient()(Request(GET, "$baseUrl/stream-response")).body.stream }
 
         waitForCompletion()
@@ -68,7 +69,7 @@ abstract class StreamingContract(private val config: StreamingTestConfiguration 
     }
 
     @Test
-    fun `can stream request`() {
+    fun `can stream request`() = runBlocking {
         createClient()(Request(POST, "$baseUrl/stream-request").body(beeper("client")))
 
         waitForCompletion()
@@ -85,7 +86,7 @@ abstract class StreamingContract(private val config: StreamingTestConfiguration 
         if (!succeeded) fail("Timed out waiting for server response")
     }
 
-    private fun captureReceivedStream(location: String, streamSource: () -> InputStream) {
+    private suspend fun captureReceivedStream(location: String, streamSource: suspend () -> InputStream) {
         val responseStream = streamSource()
         if (runningInIdea) println("incoming stream is now available")
 

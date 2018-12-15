@@ -2,6 +2,7 @@ package org.http4k.security.oauth.server
 
 import com.natpryce.hamkrest.and
 import com.natpryce.hamkrest.assertion.assertThat
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.Filter
 import org.http4k.core.Method.GET
 import org.http4k.core.Method.POST
@@ -21,7 +22,7 @@ class OAuthServerTest {
     private val debug = false
 
     @Test
-    fun `can follow authorization code flow`() {
+    fun `can follow authorization code flow`() = runBlocking {
         val authenticationServer = customOauthAuthorizationServer()
         val consumerApp = oauthClientApp(authenticationServer, debug)
 
@@ -43,7 +44,7 @@ class OAuthServerTest {
     }
 
     @Test
-    fun `authorization flow with oauth request persistence`() {
+    fun `authorization flow with oauth request persistence`() = runBlocking {
         val authenticationServer = customOauthAuthorizationServerWithPersistence()
         val consumerApp = oauthClientApp(authenticationServer, debug)
 

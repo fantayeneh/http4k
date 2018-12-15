@@ -2,6 +2,7 @@ package org.http4k.websocket
 
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.client.WebsocketClient
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method.GET
@@ -68,7 +69,7 @@ abstract class WebsocketServerContract(private val serverConfig: (Int) -> WsServ
     }
 
     @Test
-    fun `can do standard http traffic`() {
+    fun `can do standard http traffic`() = runBlocking {
         assertThat(client(Request(GET, "http://localhost:$port/hello/bob")), hasBody("bob"))
     }
 
@@ -95,7 +96,7 @@ abstract class WebsocketServerContract(private val serverConfig: (Int) -> WsServ
     }
 
     @Test
-    fun `can connect with non-blocking client`() {
+    fun `can connect with non-blocking client`() = runBlocking {
         val client = WebsocketClient.nonBlocking(Uri.of("ws://localhost:$port/hello/bob"))
         val latch = CountDownLatch(1)
         client.onMessage {

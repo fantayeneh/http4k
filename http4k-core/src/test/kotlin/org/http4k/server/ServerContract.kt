@@ -3,6 +3,7 @@ package org.http4k.server
 import com.natpryce.hamkrest.and
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.asByteBuffer
 import org.http4k.core.Body
 import org.http4k.core.ContentType
@@ -66,7 +67,7 @@ abstract class ServerContract(private val serverConfig: (Int) -> ServerConfig, p
     }
 
     @Test
-    fun `can call an endpoint with all supported Methods`() {
+    fun `can call an endpoint with all supported Methods`() = runBlocking {
         for (method in requiredMethods) {
 
             val response = client(Request(method, baseUrl + "/" + method.name))
@@ -78,7 +79,7 @@ abstract class ServerContract(private val serverConfig: (Int) -> ServerConfig, p
     }
 
     @Test
-    open fun `can return a large body - GET`() {
+    open fun `can return a large body - GET`() = runBlocking {
         val response = client(Request(GET, "$baseUrl/large").body("hello mum"))
 
         assertThat(response.status, equalTo(OK))
@@ -86,7 +87,7 @@ abstract class ServerContract(private val serverConfig: (Int) -> ServerConfig, p
     }
 
     @Test
-    open fun `can return a large body - POST`() {
+    open fun `can return a large body - POST`() = runBlocking {
         val response = client(Request(POST, "$baseUrl/large").body("hello mum"))
 
         assertThat(response.status, equalTo(OK))
@@ -94,7 +95,7 @@ abstract class ServerContract(private val serverConfig: (Int) -> ServerConfig, p
     }
 
     @Test
-    fun `gets the body from the request`() {
+    fun `gets the body from the request`() = runBlocking {
         val response = client(Request(POST, "$baseUrl/echo").body("hello mum"))
 
         assertThat(response.status, equalTo(OK))
@@ -102,7 +103,7 @@ abstract class ServerContract(private val serverConfig: (Int) -> ServerConfig, p
     }
 
     @Test
-    fun `can set multiple headers with the same name`() {
+    fun `can set multiple headers with the same name`() = runBlocking {
         val response = client(Request(GET, "$baseUrl/multiple-headers"))
 
         assertThat(response.status, equalTo(OK))
@@ -110,7 +111,7 @@ abstract class ServerContract(private val serverConfig: (Int) -> ServerConfig, p
     }
 
     @Test
-    fun `returns headers`() {
+    fun `returns headers`() = runBlocking {
         val response = client(Request(GET, "$baseUrl/headers"))
 
         assertThat(response.status, equalTo(ACCEPTED))
@@ -118,20 +119,20 @@ abstract class ServerContract(private val serverConfig: (Int) -> ServerConfig, p
     }
 
     @Test
-    fun `length is set on body if it is sent`() {
+    fun `length is set on body if it is sent`() = runBlocking {
         val response = client(Request(POST, "$baseUrl/length")
             .body("12345").header("Content-Length", "5"))
         assertThat(response, hasStatus(OK).and(hasBody("5")))
     }
 
     @Test
-    fun `length is ignored on body if it not well formed`() {
+    fun `length is ignored on body if it not well formed`() = runBlocking {
         val response = client(Request(POST, "$baseUrl/length").header("Content-Length", "nonsense").body("12345"))
         assertThat(response, hasStatus(OK).and(hasBody("5")))
     }
 
     @Test
-    fun `gets the uri from the request`() {
+    fun `gets the uri from the request`() = runBlocking {
         val response = client(Request(GET, "$baseUrl/uri?bob=bill"))
 
         assertThat(response.status, equalTo(OK))
@@ -139,14 +140,14 @@ abstract class ServerContract(private val serverConfig: (Int) -> ServerConfig, p
     }
 
     @Test
-    fun `endpoint that blows up results in 500`() {
+    fun `endpoint that blows up results in 500`() = runBlocking {
         val response = client(Request(GET, "$baseUrl/boom"))
 
         assertThat(response.status, equalTo(INTERNAL_SERVER_ERROR))
     }
 
     @Test
-    fun `can handle multiple request headers`() {
+    fun `can handle multiple request headers`() = runBlocking {
         val response = client(Request(GET, "$baseUrl/request-headers").header("foo", "one").header("foo", "two").header("foo", "three"))
 
         assertThat(response.status, equalTo(OK))
@@ -154,7 +155,7 @@ abstract class ServerContract(private val serverConfig: (Int) -> ServerConfig, p
     }
 
     @Test
-    fun `deals with streaming response`() {
+    fun `deals with streaming response`() = runBlocking {
         val response = client(Request(GET, "$baseUrl/stream"))
 
         assertThat(response.status, equalTo(OK))
@@ -162,14 +163,14 @@ abstract class ServerContract(private val serverConfig: (Int) -> ServerConfig, p
     }
 
     @Test
-    open fun `ok when length already set`() {
+    open fun `ok when length already set`() = runBlocking {
         val response = client(Request(GET, "$baseUrl/presetlength"))
         assertThat(response.status, equalTo(OK))
         assertThat(response.header("content-length"), equalTo("0"))
     }
 
     @Test
-    open fun `can start on port zero and then get the port`() {
+    open fun `can start on port zero and then get the port`() = runBlocking {
         routes(*routes.toTypedArray()).asServer(serverConfig(0)).start().use {
             assertThat(client(Request(GET, "http://localhost:${it.port()}/uri")).status, equalTo(OK))
         }

@@ -98,4 +98,4 @@ fun oauthClientApp(
 fun debugFilter(active: Boolean) = Filter.switchable(active, DebuggingFilters.PrintRequestAndResponse())
 private fun Filter.Companion.switchable(active: Boolean, next: Filter) = if (active) next else Filter.NoOp
 
-operator fun RoutingHttpHandler.plus(other: RoutingHttpHandler) = { request: Request -> routes(this, other)(request) }
+operator fun RoutingHttpHandler.plus(other: RoutingHttpHandler) = HttpHandler { request: Request -> routes(this, other)(request) }

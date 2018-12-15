@@ -3,6 +3,7 @@ package guide.modules.approvaltests
 
 import com.natpryce.hamkrest.and
 import com.natpryce.hamkrest.assertion.assertThat
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method.GET
 import org.http4k.core.Request
@@ -22,22 +23,22 @@ class ExampleApprovalTest {
     private val app = HttpHandler { Response(OK).body("hello world") }
 
     @Test
-    fun `check response content`(approver: Approver) {
+    fun `check response content`(approver: Approver) = runBlocking {
         approver.assertApproved(app(Request(GET, "/url")))
     }
 
     @Test
-    fun `check response content with expected status`(approver: Approver) {
+    fun `check response content with expected status`(approver: Approver) = runBlocking {
         approver.assertApproved(app(Request(GET, "/url")), OK)
     }
 
     @Test
-    fun `check request content`(approver: Approver) {
+    fun `check request content`(approver: Approver) = runBlocking {
         approver.assertApproved(Request(GET, "/url").body("foobar"))
     }
 
     @Test
-    fun `combine approval with hamkrest matcher`(approver: Approver) {
+    fun `combine approval with hamkrest matcher`(approver: Approver) = runBlocking {
         assertThat(app(Request(GET, "/url")), hasStatus(OK).and(approver.hasApprovedContent()))
     }
 }

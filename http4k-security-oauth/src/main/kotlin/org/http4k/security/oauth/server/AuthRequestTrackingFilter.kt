@@ -14,7 +14,9 @@ class AuthRequestTrackingFilter(
 ) : Filter {
     override fun invoke(next: HttpHandler) = HttpHandler { request: Request ->
         extractor.extract(request)
-            .map { tracking.trackAuthRequest(request, it, next(request)) }
+            .map {
+
+                tracking.trackAuthRequest(request, it, next(request)) }
             .mapFailure(errorRenderer::response).get()
     }
 }

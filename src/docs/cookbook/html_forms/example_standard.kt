@@ -8,7 +8,7 @@ import org.http4k.core.toParametersMap
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 
-fun main() {
+suspend fun main() {
     val request = Request(Method.GET, "/").form("name", "rita").form("age", "55")
 
     // reparses body every invocation

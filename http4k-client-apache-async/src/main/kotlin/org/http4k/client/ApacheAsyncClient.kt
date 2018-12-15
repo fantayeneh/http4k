@@ -1,5 +1,6 @@
 package org.http4k.client
 
+import kotlinx.coroutines.CompletableDeferred
 import org.apache.http.Header
 import org.apache.http.HttpResponse
 import org.apache.http.StatusLine
@@ -21,19 +22,27 @@ import org.http4k.core.Request
 import org.http4k.core.Response
 import org.http4k.core.Status
 import org.http4k.core.Status.Companion.CLIENT_TIMEOUT
+import org.http4k.core.Status.Companion.CONNECTION_REFUSED
 import org.http4k.core.Status.Companion.SERVICE_UNAVAILABLE
+import org.http4k.core.Status.Companion.UNKNOWN_HOST
+import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.URI
+import java.net.UnknownHostException
 
 object ApacheAsyncClient {
     operator fun invoke(
         client: CloseableHttpAsyncClient = defaultApacheAsyncHttpClient(),
         responseBodyMode: BodyMode = Memory,
         requestBodyMode: BodyMode = Memory
-    ): AsyncHttpClient {
+    ): DualSyncAsyncHttpHandler {
         if (!client.isRunning) client.start()
+        return object : DualSyncAsyncHttpHandler {
+            override suspend fun invoke(request: Request): Response {
+                val callContext = CompletableDeferred<Unit>()
+                return executeWithCoroutine(request.toApacheRequest(), callContext)
+            }
 
-        return object : AsyncHttpClient {
             override fun close() = client.close()
 
             override fun invoke(request: Request, fn: (Response) -> Unit) {
@@ -42,11 +51,7 @@ object ApacheAsyncClient {
 
                     override fun completed(result: HttpResponse) = fn(result.toHttp4kResponse())
 
-                    override fun failed(e: Exception) = fn(Response(when (e) {
-                        is ConnectTimeoutException -> CLIENT_TIMEOUT
-                        is SocketTimeoutException -> CLIENT_TIMEOUT
-                        else -> SERVICE_UNAVAILABLE
-                    }.toClientStatus(e)))
+                    override fun failed(e: Exception) = fn(e.toResponse())
                 })
             }
 
@@ -74,12 +79,54 @@ object ApacheAsyncClient {
 
             private fun Array<Header>.toTarget(): Headers = listOf(*map { it.name to it.value }.toTypedArray())
 
+            private suspend fun executeWithCoroutine(request: HttpRequestBase, callContext: CompletableDeferred<Unit>): Response {
+                val response = CompletableDeferred<Response>()
+
+                val callback = object : FutureCallback<HttpResponse> {
+                    override fun failed(exception: Exception) {
+                        callContext.cancel()
+                        response.complete(exception.toResponse())
+                    }
+
+                    override fun completed(result: HttpResponse) {
+                        response.complete(result.toHttp4kResponse())
+                    }
+
+                    override fun cancelled() {
+                        callContext.cancel()
+                        response.cancel()
+                    }
+                }
+
+                val future = try {
+                    client.execute(request, callback)
+                } catch (cause: Throwable) {
+                    response.completeExceptionally(cause)
+                    throw cause
+                }
+
+                response.invokeOnCompletion { cause ->
+                    cause ?: return@invokeOnCompletion
+                    future.cancel(true)
+                    callContext.cancel()
+                }
+
+                return response.await()
+            }
         }
     }
 
-    private fun defaultApacheAsyncHttpClient() = HttpAsyncClients.custom()
-        .setDefaultRequestConfig(RequestConfig.custom()
-            .setRedirectsEnabled(false)
-            .setCookieSpec(IGNORE_COOKIES)
-            .build()).build().apply { start() }
+    private fun Exception.toResponse() = Response(when (this) {
+        is UnknownHostException -> UNKNOWN_HOST
+        is ConnectException -> CONNECTION_REFUSED
+        is ConnectTimeoutException -> CLIENT_TIMEOUT
+        is SocketTimeoutException -> CLIENT_TIMEOUT
+        else -> SERVICE_UNAVAILABLE
+    }.toClientStatus(this))
 }
+
+private fun defaultApacheAsyncHttpClient() = HttpAsyncClients.custom()
+    .setDefaultRequestConfig(RequestConfig.custom()
+        .setRedirectsEnabled(false)
+        .setCookieSpec(IGNORE_COOKIES)
+        .build()).build().apply { start() }

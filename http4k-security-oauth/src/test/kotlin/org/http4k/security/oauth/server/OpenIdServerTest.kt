@@ -3,6 +3,7 @@ package org.http4k.security.oauth.server
 import com.natpryce.hamkrest.and
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.Filter
 import org.http4k.core.Method.GET
 import org.http4k.core.Method.POST
@@ -24,7 +25,7 @@ class OpenIdServerTest {
     private val debug = true
 
     @Test
-    fun `can follow authorization code id_token flow`() {
+    fun `can follow authorization code id_token flow`() = runBlocking {
         val authenticationServer = customOauthAuthorizationServer()
         val tokenConsumer = InMemoryIdTokenConsumer()
         val consumerApp = oauthClientApp(authenticationServer, debug, CodeIdToken, tokenConsumer)

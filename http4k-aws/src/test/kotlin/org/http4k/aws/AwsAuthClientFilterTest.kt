@@ -2,6 +2,7 @@ package org.http4k.aws
 
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method
 import org.http4k.core.Request
@@ -29,7 +30,7 @@ class AwsClientFilterTest {
     private val client = ClientFilters.AwsAuth(scope, credentials, clock).then(audit)
 
     @Test
-    fun `adds authorization header`() {
+    fun `adds authorization header`() = runBlocking {
         client(Request(Method.GET, "http://amazon/test").header("host", "foobar").header("content-length", "0"))
 
         assertThat(audit.captured?.header("Authorization"),
@@ -37,7 +38,7 @@ class AwsClientFilterTest {
     }
 
     @Test
-    fun `adds authorization header with session token`() {
+    fun `adds authorization header with session token`() = runBlocking {
         val client = ClientFilters.AwsAuth(scope, iamSessionCredentials, clock).then(audit)
 
         client(Request(Method.GET, "http://amazon/test").header("host", "foobar").header("content-length", "0"))
@@ -47,14 +48,14 @@ class AwsClientFilterTest {
     }
 
     @Test
-    fun `adds time header`() {
+    fun `adds time header`() = runBlocking {
         client(Request(Method.GET, "http://amazon/test").header("host", "foobar").header("content-length", "0"))
 
         assertThat(audit.captured?.header("x-amz-date"), equalTo("20160127T153250Z"))
     }
 
     @Test
-    fun adds_content_sha256() {
+    fun adds_content_sha256() = runBlocking {
         client(Request(Method.GET, "http://amazon/test").header("host", "foobar").header("content-length", "0"))
 
         assertThat(audit.captured?.header("x-amz-content-sha256"),
@@ -65,7 +66,7 @@ class AwsClientFilterTest {
 class AuditHandler : HttpHandler {
     var captured: Request? = null
 
-    override fun invoke(request: Request): Response {
+    override suspend fun invoke(request: Request): Response {
         captured = request
         return Response(Status.OK)
     }

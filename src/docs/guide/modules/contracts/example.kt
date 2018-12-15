@@ -95,7 +95,7 @@ val contract = contract {
 val handler: HttpHandler = routes("/api/v1" bind contract)
 
 // by default, the OpenAPI docs live at the root of the contract context, but we can override it..
-fun main() {
+suspend fun main() {
     println(handler(Request(GET, "/api/v1/swagger.json")))
 
     println(handler(Request(POST, "/api/v1/echo")

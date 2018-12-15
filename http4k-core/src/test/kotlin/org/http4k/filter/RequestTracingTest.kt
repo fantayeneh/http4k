@@ -3,6 +3,7 @@ package org.http4k.filter
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
 import com.natpryce.hamkrest.present
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method
 import org.http4k.core.Request
@@ -21,7 +22,7 @@ class RequestTracingTest {
     }
 
     @Test
-    fun `request traces are copied correctly from inbound to outbound requests`() {
+    fun `request traces are copied correctly from inbound to outbound requests`() = runBlocking {
         val originalTraceId = TraceId("originalTrace")
         val originalSpanId = TraceId("originalSpan")
         val originalParentSpanId = TraceId("originalParentSpanId")

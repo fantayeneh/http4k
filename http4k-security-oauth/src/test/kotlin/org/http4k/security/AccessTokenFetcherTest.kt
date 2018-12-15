@@ -3,6 +3,7 @@ package org.http4k.security
 import com.natpryce.hamkrest.absent
 import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
+import kotlinx.coroutines.runBlocking
 import org.http4k.core.Credentials
 import org.http4k.core.HttpHandler
 import org.http4k.core.Response
@@ -16,7 +17,7 @@ internal class AccessTokenFetcherTest {
     private val config = OAuthProviderConfig(Uri.of("irrelevant"), "/", "/path", Credentials("", ""))
 
     @Test
-    fun `can get access token from plain text body`() {
+    fun `can get access token from plain text body`() = runBlocking {
         val api = HttpHandler { Response(OK).body("some-access-token") }
 
         val fetcher = AccessTokenFetcher(api, Uri.of("irrelevant"), config)
@@ -26,7 +27,7 @@ internal class AccessTokenFetcherTest {
 
 
     @Test
-    fun `can get access token from json body`() {
+    fun `can get access token from json body`() = runBlocking {
         //see https://tools.ietf.org/html/rfc6749#section-4.1.4
         val api = HttpHandler { Response(OK).with(accessTokenResponseBody of AccessTokenResponse("some-access-token")) }
 
@@ -36,7 +37,7 @@ internal class AccessTokenFetcherTest {
     }
 
     @Test
-    fun `handle non-successful response`() {
+    fun `handle non-successful response`() = runBlocking {
         val api = HttpHandler { Response(BAD_REQUEST) }
 
         val fetcher = AccessTokenFetcher(api, Uri.of("irrelevant"), config)

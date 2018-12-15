@@ -6,8 +6,8 @@ import com.natpryce.hamkrest.assertion.assertThat
 import com.natpryce.hamkrest.equalTo
 import com.natpryce.hamkrest.has
 import com.natpryce.hamkrest.throws
+import kotlinx.coroutines.runBlocking
 import org.http4k.cloudnative.UpstreamRequestFailed
-import org.http4k.core.HttpHandler
 import org.http4k.core.Method.GET
 import org.http4k.core.Request
 import org.http4k.core.Response
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test
 class HandleUpstreamRequestFailedTest {
 
     @Test
-    fun `when server and client filters are used together, converts errors as expected`() {
+    fun `when server and client filters are used together, converts errors as expected`() = runBlocking {
         assertServerResponseForClientStatus(OK, hasStatus(OK))
         assertServerResponseForClientStatus(CLIENT_TIMEOUT, hasStatus(GATEWAY_TIMEOUT))
         assertServerResponseForClientStatus(GATEWAY_TIMEOUT, hasStatus(GATEWAY_TIMEOUT))
@@ -46,22 +46,23 @@ class HandleUpstreamRequestFailedTest {
     @Test
     fun `client throws when filter fails`() {
         assertThat({
-            ClientFilters.HandleUpstreamRequestFailed({ false }).then { Response(NOT_FOUND) }(Request(GET, ""))
+            runBlocking {
+                ClientFilters.HandleUpstreamRequestFailed({ false }).then { Response(NOT_FOUND) }(Request(GET, ""))
+            }
         }, throws(has(UpstreamRequestFailed::status, equalTo(NOT_FOUND))))
     }
 
     @Test
-    fun `server handles custom exception`() {
+    fun `server handles custom exception`() = runBlocking {
         assertThat(ServerFilters.HandleUpstreamRequestFailed().then { throw CustomUpstreamFailure }(Request(GET, "")), hasStatus(SERVICE_UNAVAILABLE).and(hasBody(CustomUpstreamFailure.localizedMessage)))
     }
 
-    private fun assertServerResponseForClientStatus(input: Status, responseMatcher: Matcher<Response>) = assertThat(stackWith({ status.successful || status == NOT_FOUND }, input)(Request(GET, "")), responseMatcher)
+    private suspend fun assertServerResponseForClientStatus(input: Status, responseMatcher: Matcher<Response>) = assertThat(stackWith({ status.successful || status == NOT_FOUND }, input)(Request(GET, "")), responseMatcher)
 
-    private fun stackWith(acceptNotFound: Response.() -> Boolean, input: Status): HttpHandler {
-        return ServerFilters.HandleUpstreamRequestFailed()
+    private fun stackWith(acceptNotFound: Response.() -> Boolean, input: Status) =
+        ServerFilters.HandleUpstreamRequestFailed()
             .then(ClientFilters.HandleUpstreamRequestFailed(acceptNotFound))
             .then { Response(input).body(input.code.toString()) }
-    }
 
     private object CustomUpstreamFailure : UpstreamRequestFailed(I_M_A_TEAPOT, "foo")
 }
