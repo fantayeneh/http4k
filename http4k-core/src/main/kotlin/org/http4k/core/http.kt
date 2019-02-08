@@ -70,11 +70,11 @@ class StreamBody(override val stream: InputStream, override val length: Long? = 
     override fun toString() = "<<stream>>"
 
     override fun equals(other: Any?) =
-        when {
-            this === other -> true
-            other !is Body? -> false
-            else -> payload == other?.payload
-        }
+            when {
+                this === other -> true
+                other !is Body? -> false
+                else -> payload == other?.payload
+            }
 
     override fun hashCode() = payload.hashCode()
 }
@@ -117,7 +117,11 @@ interface HttpMessage : Closeable {
     override fun close() = body.close()
 }
 
-enum class Method { GET, POST, PUT, DELETE, OPTIONS, TRACE, PATCH, PURGE, HEAD }
+enum class Method {
+    GET, POST, PUT, DELETE, OPTIONS, TRACE, PATCH, PURGE, HEAD;
+
+    infix fun to(fn: HandleRequest) = this to HttpHandler(fn)
+}
 
 interface Request : HttpMessage {
     val method: Method
@@ -189,10 +193,10 @@ data class MemoryRequest(override val method: Method, override val uri: Uri, ove
     override fun toString(): String = toMessage()
 
     override fun equals(other: Any?) = (other is Request
-        && headers.areSameHeadersAs(other.headers)
-        && method == other.method
-        && uri == other.uri
-        && body == other.body)
+            && headers.areSameHeadersAs(other.headers)
+            && method == other.method
+            && uri == other.uri
+            && body == other.body)
 }
 
 @Suppress("EqualsOrHashCode")
@@ -239,9 +243,9 @@ data class MemoryResponse(override val status: Status, override val headers: Hea
     override fun toString(): String = toMessage()
 
     override fun equals(other: Any?) = (other is Response
-        && headers.areSameHeadersAs(other.headers)
-        && status == other.status
-        && body == other.body)
+            && headers.areSameHeadersAs(other.headers)
+            && status == other.status
+            && body == other.body)
 }
 
 fun <T> T.with(vararg modifiers: (T) -> T): T = modifiers.fold(this) { memo, next -> next(memo) }

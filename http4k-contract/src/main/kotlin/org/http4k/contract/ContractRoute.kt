@@ -32,9 +32,7 @@ class ContractRoute internal constructor(val method: Method,
                     request.without(spec.pathFn(contractRoot))
                         .extract(spec.pathLenses.toList())
                         ?.let {
-                            if (request.method == OPTIONS) {
-                                { Response(OK) }
-                            } else toHandler(it)
+                            if (request.method == OPTIONS) HttpHandler { Response(OK) } else toHandler(it)
                         }
                 } catch (e: LensFailure) {
                     null

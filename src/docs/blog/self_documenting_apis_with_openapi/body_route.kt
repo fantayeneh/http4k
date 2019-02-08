@@ -25,7 +25,7 @@ object Family {
 
     private val responseLens = Body.auto<Person>("The matched family tree").toLens()
 
-    private fun handler(queryName: String): HttpHandler = {
+    private fun handler(queryName: String) = HttpHandler {
         fun Person.search(): Person? = when (name) {
             queryName -> this
             else -> children.firstOrNull { it.search() != null }

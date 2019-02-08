@@ -24,5 +24,5 @@ class GenerateXmlDataClasses<NODE : Any>(
         }
     })
 
-    override fun invoke(p1: HttpHandler): HttpHandler = { chains.then(p1)(it) }
+    override fun invoke(next: HttpHandler) = HttpHandler { chains.then(next)(it) }
 }

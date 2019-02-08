@@ -23,11 +23,11 @@ internal class ResourceLoadingHandler(private val pathSegments: String,
                                       extraFileExtensionToContentTypes: Map<String, ContentType>) : HttpHandler {
     private val extMap = MimeTypes(extraFileExtensionToContentTypes)
 
-    override fun invoke(p1: Request): Response = if (p1.uri.path.startsWith(pathSegments)) {
-        val path = convertPath(p1.uri.path)
+    override fun invoke(request: Request) = if (request.uri.path.startsWith(pathSegments)) {
+        val path = convertPath(request.uri.path)
         resourceLoader.load(path)?.let { url ->
             val lookupType = extMap.forFile(path)
-            if (p1.method == GET && lookupType != OCTET_STREAM) {
+            if (request.method == GET && lookupType != OCTET_STREAM) {
                 Response(OK)
                     .header("Content-Type", lookupType.value)
                     .body(Body(url.openStream()))
@@ -78,7 +78,7 @@ internal data class AggregateRoutingHttpHandler(
     override fun withBasePath(new: String): RoutingHttpHandler = copy(list = list.map { it.withBasePath(new) })
 }
 
-internal val routeNotFoundHandler: HttpHandler = { Response(NOT_FOUND.description("Route not found")) }
+internal val routeNotFoundHandler = HttpHandler { Response(NOT_FOUND.description("Route not found")) }
 
 internal data class TemplateRoutingHttpHandler(
     private val method: Method?,
@@ -89,7 +89,7 @@ internal data class TemplateRoutingHttpHandler(
 
     override fun match(request: Request): HttpHandler? =
         if (template.matches(request.uri.path) && (method == null || method == request.method))
-            { r: Request -> RoutedResponse(httpHandler(RoutedRequest(r, template)), template) }
+            HttpHandler { r: Request -> RoutedResponse(httpHandler(RoutedRequest(r, template)), template) }
         else null
 
     override fun invoke(request: Request): Response = (match(request) ?: notFoundHandler)(request)

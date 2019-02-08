@@ -54,7 +54,7 @@ object ChaosEngine {
                 .reduce { acc, next -> acc.then(next) }
         }.toLens()
 
-        val showCurrentStatus: HttpHandler = {
+        val showCurrentStatus = HttpHandler {
             Response(OK).with(Body.json().toLens() of obj(
                 "chaos" to string(if (trigger.isActive()) variable.toString() else "none")
             ))

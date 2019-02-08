@@ -10,6 +10,7 @@ import org.http4k.contract.simple.SimpleJson
 import org.http4k.core.Body
 import org.http4k.core.Credentials
 import org.http4k.core.Filter
+import org.http4k.core.HttpHandler
 import org.http4k.core.Method.GET
 import org.http4k.core.Method.OPTIONS
 import org.http4k.core.Request
@@ -91,7 +92,7 @@ abstract class ContractRoutingHttpHandlerContract : RoutingHttpHandlerContract()
     fun `traffic goes to the path specified`() {
         val root = routes(
             "/root/bar" bind contract {
-                routes += "/foo/bar" / Path.of("world") bindContract GET to { _ -> { Response(OK) } }
+                routes += "/foo/bar" / Path.of("world") bindContract GET to { _ -> HttpHandler { Response(OK) } }
             })
         val response = root(Request(GET, "/root/bar/foo/bar/hello")) as RoutedResponse
 
@@ -126,7 +127,7 @@ abstract class ContractRoutingHttpHandlerContract : RoutingHttpHandlerContract()
     fun `identifies called route using identity header on request`() {
         val root = routes(
             "/root" bind contract {
-                routes += Path.fixed("hello") / Path.of("world") bindContract GET to { _, _ -> { Response(OK) } }
+                routes += Path.fixed("hello") / Path.of("world") bindContract GET to { _, _ -> HttpHandler { Response(OK) } }
             }
         )
         val response: RoutedResponse = root(Request(GET, "/root/hello/planet")) as RoutedResponse
