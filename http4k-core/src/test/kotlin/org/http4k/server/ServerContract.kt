@@ -142,7 +142,6 @@ abstract class ServerContract(private val serverConfig: (Int) -> ServerConfig, p
     @Test
     fun `endpoint that blows up results in 500`() = runBlocking {
         val response = client(Request(GET, "$baseUrl/boom"))
-
         assertThat(response.status, equalTo(INTERNAL_SERVER_ERROR))
     }
 
